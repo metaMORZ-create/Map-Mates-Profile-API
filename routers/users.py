@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Annotated
-from db import get_db
+from .. db import get_db
 from hashing import hash_password, verify_password
 import models as tables
 from typevalidation import UserBase, LoginUser
