@@ -2,7 +2,7 @@ import requests
 
 url_register = "https://map-mates-profile-api-production.up.railway.app/register"
 url_login = "https://map-mates-profile-api-production.up.railway.app/login"
-data_create_user = {"username": "Moritz2", "email": "baarsmoritz796@gmail.com", "name": "Moritz", "last_name": "Baars", "disabled": False, "password": "test"}
+data_create_user = {"username": "Moritz3", "email": "baarsmoritz96@gmail.com", "disabled": False, "password": "test"}
 data_login_user = {"username": "Moritz", "password": "test"}
 
 response = requests.post(url_register, json=data_create_user)
