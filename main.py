@@ -36,7 +36,7 @@ def create_user(user: UserBase, db: db_dependency):
     db.refresh(new_user)
     return {"message": "User created successfully", "user": new_user.username}
 
-app.post("/login")
+@app.post("/login")
 def login(user: UserBase, db: db_dependency):
     hashed_password = hash_password(user.password)
     db_user = db.query(models.User).filter(models.User.username == user.username, models.User.hashed_password == hashed_password).first()
