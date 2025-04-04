@@ -7,8 +7,6 @@ app = FastAPI()
 
 tables.Base.metadata.create_all(bind=engine)
 
-print("For Git")
-
 # Routen registrieren
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(locations.router, prefix="/locations", tags=["locations"])

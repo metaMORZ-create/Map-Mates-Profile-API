@@ -26,7 +26,7 @@ def add_location(location: AddLocation, db: db_dependency):
     db.refresh(new_location)
     return {"message": "Location added", "location_id": new_location.id, "timestamp": new_location.timestamp}
 
-@router.get("last_location/{user_id}")
+@router.get("/last_location/{user_id}")
 def get_last_location(user_id: int, db: db_dependency):
     location = (
         db.query(tables.UserLocation)
