@@ -26,4 +26,24 @@ def add_location(location: AddLocation, db: db_dependency):
     db.refresh(new_location)
     return {"message": "Location added", "location_id": new_location.id, "timestamp": new_location.timestamp}
 
+@router.get("last_location/{user_id}")
+def get_last_location(user_id: int, db: db_dependency):
+    location = (
+        db.query(tables.UserLocation)
+        .filter(tables.UserLocation.user_id == user_id)
+        .order_by(tables.UserLocation.timestamp.desc())
+        .first()
+    )
+
+    if not location:
+        raise HTTPException(status_code=404, detail="No location found for this user")
+    
+    return {
+        "user_id": location.user_id,
+        "latitude": location.latitude,
+        "longitude": location.longitude,
+        "altitude": location.altitude,
+        "timestamp": location.timestamp
+    }
+
 
