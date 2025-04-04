@@ -23,14 +23,14 @@ def create_user(user: UserBase, db: db_dependency):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return {"message": "User created successfully", "user": new_user.username}
+    return {"message": "User created successfully", "user": new_user.username, "user_id": new_user.id}
 
 @router.post("/login")
 def login(user: LoginUser, db: db_dependency):
     db_user = db.query(tables.User).filter(tables.User.username == user.username).first()
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    return {"message": "Login successful", "user": db_user.username}
+    return {"message": "Login successful", "user": db_user.username , "user_id": db_user.id}
 
 @router.delete("/delete/{username}")
 def delete_user(username: str, db: db_dependency):
