@@ -7,4 +7,4 @@ data_login_user = {"username": "Moritz", "password": "test"}
 
 response = requests.post(url_login, json=data_login_user)
 print(response.status_code)
-print(response.json())
+print(response.text)

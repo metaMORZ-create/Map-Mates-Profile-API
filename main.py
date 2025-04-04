@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import models as models
 from db import SessionLocal, engine
 from typevalidation import UserBase, LoginUser
-from hashing import hash_password
+from hashing import hash_password, verify_password
 from sqlalchemy.orm import Session
 from typing import List, Annotated
 
@@ -39,7 +39,7 @@ def create_user(user: UserBase, db: db_dependency):
 @app.post("/login")
 def login(user: LoginUser, db: db_dependency):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
-    if not db_user or not db_user.verify_password(user.password, db_user.hashed_password):
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {"message": "Login successful", "user": db_user.username}
 
