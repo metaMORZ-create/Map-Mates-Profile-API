@@ -27,6 +27,12 @@ def add_location(user_id: int, latitude: int, longitude: int):
 
     return response
 
+def get_last_location(user_id: int):
+    url_add_location = f"https://map-mates-profile-api-production.up.railway.app/locations/last_location/{user_id}"
+    response = requests.get(url_add_location)
+
+    return response
+
 
 
 def full_test():
@@ -38,12 +44,12 @@ def full_test():
     print(f"Create User Status: {response_create.status_code} \nMessage: {response_create.text}")
     print(f"Login User Status: {response_login.status_code} \nMessage: {response_login.text}")
     print(f"Delete User Status: {response_delete.status_code} \nMessage: {response_delete.text}")
-    print(f"Delete User Status: {response_add_location.status_code} \nMessage: {response_add_location.text}")
+    print(f"Add Location Status: {response_add_location.status_code} \nMessage: {response_add_location.text}")
 
 
 if __name__ == "__main__":
    # response = delete_user("Stine")
    # print(f"Status: {response.status_code} \nMessage: {response.text}")
    #full_test()
-   response_add_location = add_location(user_id=1, latitude=36.011, longitude=50.04) 
-   print(f"Delete User Status: {response_add_location.status_code} \nMessage: {response_add_location.text}")
+   response_get_location = get_last_location(user_id=1) 
+   print(f"Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
