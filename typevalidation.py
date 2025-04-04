@@ -9,3 +9,9 @@ class UserBase(BaseModel):
 class LoginUser(BaseModel):
     username: str
     password: str
+
+class AddLocation(BaseModel):
+    user_id: int
+    latitude: float
+    longitude: float
+
