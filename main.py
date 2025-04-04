@@ -30,7 +30,7 @@ def create_user(user: UserBase, db: db_dependency):
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed_password = hash_password(user.password)
-    new_user = models.User(username=user.username, email=user.email, name=user.name, last_name=user.last_name, disabled=user.disabled, hashed_password=hashed_password)
+    new_user = models.User(username=user.username, email=user.email, disabled=user.disabled, hashed_password=hashed_password)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
