@@ -8,3 +8,6 @@ class UserBase(BaseModel):
     disabled: bool = False
     password: str
 
+class LoginUser(BaseModel):
+    username: str
+    password: str
