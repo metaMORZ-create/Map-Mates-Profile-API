@@ -1,14 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
-import utility.models as models
-from utility.db import SessionLocal, engine
-from utility.typevalidation import UserBase
-from utility.hashing import hash_password
+import models as models
+from db import SessionLocal, engine
+from typevalidation import UserBase
+from hashing import hash_password
 from sqlalchemy.orm import Session
 from typing import List, Annotated
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
+
+print("Für Git")
 
 def get_db():
     db = SessionLocal()
