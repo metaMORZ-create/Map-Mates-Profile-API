@@ -15,3 +15,6 @@ class AddLocation(BaseModel):
     latitude: float
     longitude: float
 
+class FriendRequestInput(BaseModel):
+    sender_id: int
+    receiver_id: int
