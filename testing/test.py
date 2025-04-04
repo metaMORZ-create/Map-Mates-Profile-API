@@ -34,6 +34,11 @@ def get_last_location(user_id: int):
 
     return response
 
+def search_user(search: str, user_id: int):
+    url_search_user = f"https://map-mates-profile-api-production.up.railway.app/socials/search?query={search}&self_id={user_id}"
+    response = requests.get(url_search_user)
+
+    return response
 
 
 def full_test():
@@ -42,12 +47,19 @@ def full_test():
     response_delete = delete_user(username="Tester")
     response_add_location = add_location(user_id=1, latitude=random.randrange(10, 60), longitude=random.randrange(10, 60))
     response_get_location = get_last_location(user_id=1)
+    response_search_user = search_user(search="mor", user_id=1)
 
     print(f"Create User Status: {response_create.status_code} \nMessage: {response_create.text}")
+    print("-------------------------------------------------------------------------------------------------")
     print(f"Login User Status: {response_login.status_code} \nMessage: {response_login.text}")
+    print("-------------------------------------------------------------------------------------------------")
     print(f"Delete User Status: {response_delete.status_code} \nMessage: {response_delete.text}")
+    print("-------------------------------------------------------------------------------------------------")
     print(f"Add Location Status: {response_add_location.status_code} \nMessage: {response_add_location.text}")
+    print("-------------------------------------------------------------------------------------------------")
     print(f"Got Location Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Search User Status: {response_search_user.status_code} \nMessage: {response_search_user.text}")
 
 
 

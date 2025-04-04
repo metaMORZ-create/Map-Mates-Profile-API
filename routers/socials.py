@@ -13,7 +13,8 @@ db_dependency = Annotated[Session, Depends(get_db)]
 def search_users(db: db_dependency, query: str = Query(..., min_length=1), self_id: int = Query(...)):
     users = db.query(tables.User).filter(
             tables.User.username.ilike(f"%{query}%"),
-            tables.User.id != self_id
+            tables.User.id != self_id,
+            tables.User.disabled == False
             ).all()
 
     if not users:
@@ -23,7 +24,6 @@ def search_users(db: db_dependency, query: str = Query(..., min_length=1), self_
         {
             "id": user.id,
             "username": user.username,
-            "email": user.email,
             "disabled": user.disabled
         }
         for user in users
