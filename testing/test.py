@@ -78,6 +78,12 @@ def get_outgoing_requests(self_id: int):
 
     return response
 
+def get_incoming_requests(self_id: int):
+    url_incoming_requests = f"https://map-mates-profile-api-production.up.railway.app/socials/received_requests/{self_id}"
+    response = requests.get(url_incoming_requests)
+
+    return response
+
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
     response_login = login_user(username="Tester", password="test123")
@@ -90,6 +96,7 @@ def full_test():
     response_send_request = send_request(sender_id=15, receiver_id=1)
     response_deny_request = deny_request(self_user_id=1, sender_user_id=15)
     response_get_outgoing = get_outgoing_requests(self_id=3)
+    response_get_incoming = get_incoming_requests(self_id=26)
 
 
 
@@ -107,11 +114,13 @@ def full_test():
     print("-------------------------------------------------------------------------------------------------")
     print(f"Send Request Status: {response_send_request.status_code} \nMessage: {response_send_request.text}")
     print("-------------------------------------------------------------------------------------------------")
-    print(f"Send Request Status: {response_accept_request.status_code} \nMessage: {response_accept_request.text}")
+    print(f"Accept Request Status: {response_accept_request.status_code} \nMessage: {response_accept_request.text}")
     print("-------------------------------------------------------------------------------------------------")
-    print(f"Send Request Status: {response_deny_request.status_code} \nMessage: {response_deny_request.text}")
+    print(f"Deny Request Status: {response_deny_request.status_code} \nMessage: {response_deny_request.text}")
     print("-------------------------------------------------------------------------------------------------")
-    print(f"Send Request Status: {response_get_outgoing.status_code} \nMessage: {response_get_outgoing.text}")
+    print(f"Outgoing Requests Status: {response_get_outgoing.status_code} \nMessage: {response_get_outgoing.text}")
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Incoming Requests Status: {response_get_incoming.status_code} \nMessage: {response_get_incoming.text}")
 
 if __name__ == "__main__":
    # response = delete_user("Stine")

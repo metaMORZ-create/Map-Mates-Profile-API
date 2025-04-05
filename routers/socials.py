@@ -206,3 +206,25 @@ def get_received_request(self_id: int, db: db_dependency):
         }
         for req in requests
     ]
+
+@router.get("/get_friends/{self_id}")
+def get_friends(self_id: int, db: db_dependency):
+    friends = (
+        db.query(
+            tables.UserFriend,
+            tables.User.username.label("friend_username")
+        )
+        .join(tables.User, tables.UserFriend.friend_id == tables.User.id)
+        .filter(tables.UserFriend.user_id == self_id)
+        .all()
+    )
+
+    return [
+        {
+            "friend_id": friend.UserFriend.friend_id,
+            "friend_username": friend.friend_username,
+            "friendship_id": friend.UserFriend.id
+        }
+        for friend in friends
+    ]
+
