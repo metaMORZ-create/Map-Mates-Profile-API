@@ -30,6 +30,13 @@ def search_users(db: db_dependency, query: str = Query(..., min_length=1), self_
             tables.FriendRequest.status == "pending"
         ).first() is not None
 
+        # Check if user sent self.id a friend request
+        request_received = db.query(tables.FriendRequest).filter(
+            tables.FriendRequest.sender_id == user.id,
+            tables.FriendRequest.receiver_id == self_id,
+            tables.FriendRequest.status == "pending"
+        ).first() is not None
+
         # Freundschaft prüfen (egal in welche Richtung)
         already_friends = db.query(tables.UserFriend).filter(
             ((tables.UserFriend.user_id == self_id) & (tables.UserFriend.friend_id == user.id)) |
@@ -41,6 +48,7 @@ def search_users(db: db_dependency, query: str = Query(..., min_length=1), self_
             "username": user.username,
             "disabled": user.disabled,
             "request_sent": request_sent,
+            "request_received": request_received,
             "already_friends": already_friends
         })
 
