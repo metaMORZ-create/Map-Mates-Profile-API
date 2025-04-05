@@ -138,7 +138,7 @@ def deny_friend_request(data: AcceptRequestInput, db: db_dependency):
     if not friend_request:
         raise HTTPException(status_code=404, detail="Friend request not found or already handled")
     
-    if friend_request.receiver_id != data.self_user_id:
+    if data.self_user_id not in [friend_request.sender_id, friend_request.receiver_id]:
         raise HTTPException(status_code=403, detail="You are not authorized to deny this friend request")
     
     # Add friendship both ways around
