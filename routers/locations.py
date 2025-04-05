@@ -73,4 +73,18 @@ def mark_visited_zone(data: AddLocation, db: db_dependency):
     db.commit()
     return {"message": "Zone saved/updated"}
 
+@router.get("/visited_zones/{user_id}")
+def get_visited_zones(user_id: int, db: db_dependency):
+    zones = db.query(tables.VisitedZone).filter(
+        tables.VisitedZone.user_id == user_id
+    ).all()
 
+    return [
+        {
+            "latitude": zone.latitude,
+            "longitude": zone.longitude,
+            "radius": zone.radius,
+            "last_visited": zone.last_visited.isoformat(),  # optional
+        }
+        for zone in zones
+    ]
