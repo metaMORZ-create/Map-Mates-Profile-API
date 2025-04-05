@@ -40,6 +40,13 @@ def search_user(search: str, user_id: int):
 
     return response
 
+def send_request(sender_id: int, receiver_id: int):
+    url_send_request = f"https://map-mates-profile-api-production.up.railway.app/socials/send_request"
+    data_send_request = {"sender_id": sender_id, "receiver_id": receiver_id}
+    response = requests.post(url_send_request, json=data_send_request)
+
+    return response
+
 
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
@@ -48,6 +55,8 @@ def full_test():
     response_add_location = add_location(user_id=1, latitude=random.randrange(10, 60), longitude=random.randrange(10, 60))
     response_get_location = get_last_location(user_id=1)
     response_search_user = search_user(search="mor", user_id=1)
+    response_send_request = send_request(sender_id=3, receiver_id=1)
+
 
     print(f"Create User Status: {response_create.status_code} \nMessage: {response_create.text}")
     print("-------------------------------------------------------------------------------------------------")
@@ -60,7 +69,8 @@ def full_test():
     print(f"Got Location Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
     print("-------------------------------------------------------------------------------------------------")
     print(f"Search User Status: {response_search_user.status_code} \nMessage: {response_search_user.text}")
-
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Send Request Status: {response_send_request.status_code} \nMessage: {response_send_request.text}")
 
 
 if __name__ == "__main__":

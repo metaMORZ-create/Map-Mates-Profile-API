@@ -52,7 +52,7 @@ def send_friend_request(data: FriendRequestInput, db: db_dependency):
     sender = db.query(tables.User).filter(tables.User.id == data.sender_id).first()
     receiver = db.query(tables.User).filter(tables.User.id == data.receiver_id).first()
 
-    if not sender or receiver:
+    if not sender or not receiver:
         raise HTTPException(status_code=404, detail="One or both users not found")
     if sender.id == receiver.id:
         raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
