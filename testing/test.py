@@ -61,6 +61,12 @@ def deny_request(self_user_id: int, sender_user_id: int):
 
     return response
 
+def get_outgoing_requests(self_id: int):
+    url_outgoing_requests = f"https://map-mates-profile-api-production.up.railway.app/socials/outgoing_requests/{self_id}"
+    response = requests.get(url_outgoing_requests)
+
+    return response
+
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
     response_login = login_user(username="Tester", password="test123")

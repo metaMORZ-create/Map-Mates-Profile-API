@@ -167,7 +167,7 @@ def get_outgoing_request(self_id: int, db: db_dependency):
     ]
 
 @router.get("/received_requests/{self_id}")
-def get_received_request(self_id: id, db: db_dependency):
+def get_received_request(self_id: int, db: db_dependency):
     requests = db.query(tables.FriendRequest).filter(
         tables.FriendRequest.receiver_id == self_id,
         tables.FriendRequest.status == "pending"
