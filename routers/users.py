@@ -32,11 +32,31 @@ def login(user: LoginUser, db: db_dependency):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {"message": "Login successful", "user": db_user.username , "user_id": db_user.id}
 
-@router.delete("/delete/{username}")
-def delete_user(username: str, db: db_dependency):
-    user = db.query(tables.User).filter(tables.User.username == username).first()
+@router.delete("/full_delete/{user_id}")
+def full_delete_user(user_id: int, db: db_dependency):
+    user = db.query(tables.User).filter(tables.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # 1. Lösche Standortdaten
+    db.query(tables.UserLocation).filter(tables.UserLocation.user_id == user_id).delete()
+
+    # 2. Lösche Friend Requests (gesendet oder empfangen)
+    db.query(tables.FriendRequest).filter(
+        (tables.FriendRequest.sender_id == user_id) | 
+        (tables.FriendRequest.receiver_id == user_id)
+    ).delete()
+
+    # 3. Lösche Freundschaften (egal ob user_id sender oder empfänger)
+    db.query(tables.UserFriend).filter(
+        (tables.UserFriend.user_id == user_id) | 
+        (tables.UserFriend.friend_id == user_id)
+    ).delete()
+
+    # 4. Lösche den User
     db.delete(user)
     db.commit()
-    return {"message": f"User '{username}' deleted"}
+
+    return {"message": f"User {user.username} and related data deleted."}
+
+

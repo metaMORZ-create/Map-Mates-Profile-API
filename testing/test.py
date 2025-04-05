@@ -84,6 +84,13 @@ def get_incoming_requests(self_id: int):
 
     return response
 
+def get_friends(self_id: int):
+    url_get_friends = f"https://map-mates-profile-api-production.up.railway.app/socials/get_friends/{self_id}"
+    response = requests.get(url_get_friends)
+
+    return response
+
+
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
     response_login = login_user(username="Tester", password="test123")
@@ -97,6 +104,7 @@ def full_test():
     response_deny_request = deny_request(self_user_id=1, sender_user_id=15)
     response_get_outgoing = get_outgoing_requests(self_id=3)
     response_get_incoming = get_incoming_requests(self_id=26)
+    response_get_friends = get_friends(self_id=15)
 
 
 
@@ -121,6 +129,8 @@ def full_test():
     print(f"Outgoing Requests Status: {response_get_outgoing.status_code} \nMessage: {response_get_outgoing.text}")
     print("-------------------------------------------------------------------------------------------------")
     print(f"Incoming Requests Status: {response_get_incoming.status_code} \nMessage: {response_get_incoming.text}")
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Get friends Status: {response_get_friends.status_code} \nMessage: {response_get_friends.text}")
 
 if __name__ == "__main__":
    # response = delete_user("Stine")
