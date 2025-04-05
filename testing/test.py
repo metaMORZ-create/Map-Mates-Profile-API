@@ -62,8 +62,19 @@ def deny_request(self_user_id: int, sender_user_id: int):
     return response
 
 def get_outgoing_requests(self_id: int):
+    friends = [1, 12, 4, 5, 8]
+    for friend in friends:
+        response_send = send_request(sender_id=3, receiver_id=friend)
+        if response_send.status_code != 200:
+            print(f"!!!!! FEHLER BEIM SENDEN DER FRIENDREQUESTS: {response_send.text}")
     url_outgoing_requests = f"https://map-mates-profile-api-production.up.railway.app/socials/outgoing_requests/{self_id}"
     response = requests.get(url_outgoing_requests)
+
+    for friend in friends:
+        response_denied = deny_request(self_user_id=3, sender_user_id=friend)
+        if response_denied.status_code != 200:
+            print(f"!!!!! FEHLER BEIM LÖSCHEN DER FRIEND REQUESTS: {response_denied.text}")
+
 
     return response
 
@@ -78,6 +89,8 @@ def full_test():
     response_accept_request = accept_request(self_user_id=1, sender_user_id=3)
     response_send_request = send_request(sender_id=15, receiver_id=1)
     response_deny_request = deny_request(self_user_id=1, sender_user_id=15)
+    response_get_outgoing = get_outgoing_requests(self_id=3)
+
 
 
     print(f"Create User Status: {response_create.status_code} \nMessage: {response_create.text}")
@@ -97,7 +110,8 @@ def full_test():
     print(f"Send Request Status: {response_accept_request.status_code} \nMessage: {response_accept_request.text}")
     print("-------------------------------------------------------------------------------------------------")
     print(f"Send Request Status: {response_deny_request.status_code} \nMessage: {response_deny_request.text}")
-
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Send Request Status: {response_get_outgoing.status_code} \nMessage: {response_get_outgoing.text}")
 
 if __name__ == "__main__":
    # response = delete_user("Stine")

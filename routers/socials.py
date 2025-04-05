@@ -130,9 +130,15 @@ def accept_friend_request(data: AcceptRequestInput, db: db_dependency):
 @router.post("/deny_request")
 def deny_friend_request(data: AcceptRequestInput, db: db_dependency):
     friend_request = db.query(tables.FriendRequest).filter(
-        tables.FriendRequest.sender_id == data.sender_user_id,
-        tables.FriendRequest.receiver_id == data.self_user_id,
-        tables.FriendRequest.status == "pending"
+        tables.FriendRequest.status == "pending",
+        (
+            (tables.FriendRequest.sender_id == data.sender_user_id) &
+            (tables.FriendRequest.receiver_id == data.self_user_id)
+        ) |
+        (
+            (tables.FriendRequest.sender_id == data.self_user_id) &
+            (tables.FriendRequest.receiver_id == data.sender_user_id)
+        )
     ).first()
 
     if not friend_request:
