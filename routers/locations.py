@@ -5,6 +5,9 @@ from db import get_db
 from hashing import hash_password, verify_password
 import models as tables
 from typevalidation import AddLocation
+from datetime import datetime
+from utils import is_within_radius
+
 
 router = APIRouter()
 
@@ -45,5 +48,29 @@ def get_last_location(user_id: int, db: db_dependency):
         "altitude": location.altitude,
         "timestamp": location.timestamp
     }
+
+@router.post("/visited_zone")
+def mark_visited_zone(data: AddLocation, db: db_dependency):
+    existing_zones = db.query(tables.VisitedZone).filter_by(user_id=data.user_id).all()
+
+    matched_zone = None
+    for zone in existing_zones:
+        if is_within_radius(data.latitude, data.longitude, zone.latitude, zone.longitude, zone.radius):
+            matched_zone = zone
+            break
+
+    if matched_zone:
+        matched_zone.last_visited = datetime.utcnow()
+        matched_zone.visits += 1
+    else:
+        new_zone = tables.VisitedZone(
+            user_id=data.user_id,
+            latitude=data.latitude,
+            longitude=data.longitude
+        )
+        db.add(new_zone)
+
+    db.commit()
+    return {"message": "Zone saved/updated"}
 
 

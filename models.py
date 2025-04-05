@@ -15,6 +15,7 @@ class User(Base):
 
     locations = relationship("UserLocation", back_populates="user", cascade="all, delete-orphan")
     friend_requests_sent = relationship("FriendRequest", foreign_keys="[FriendRequest.sender_id]")
+    visited_zones = relationship("VisitedZone", back_populates="user", cascade="all, delete")
     friend_requests_received = relationship("FriendRequest", foreign_keys="[FriendRequest.receiver_id]")
 
 class UserLocation(Base):
@@ -60,3 +61,18 @@ class FriendRequest(Base):
 
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
+
+
+class VisitedZone(Base):
+    __tablename__ = "visited_zones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    radius = Column(Float, default=5.0)
+    visits = Column(Integer, default=1)
+    first_visited = Column(DateTime, default=datetime.utcnow)
+    last_visited = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="visited_zones")

@@ -15,8 +15,8 @@ def login_user(username: str, password: str):
 
     return response
 
-def delete_user(username: str):
-    url_delete = f"https://map-mates-profile-api-production.up.railway.app/users/delete/{username}"
+def delete_user(user_id: int):
+    url_delete = f"https://map-mates-profile-api-production.up.railway.app/users/full_delete/{user_id}"
     response = requests.delete(url_delete)
 
     return response
@@ -90,6 +90,10 @@ def get_friends(self_id: int):
 
     return response
 
+def clean_up(user_ids):
+    for user_id in user_ids:
+        response = delete_user(user_id=user_id)
+        print(f"Response Status: {response.status_code}\nResponse Message: {response.text}")
 
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
@@ -105,7 +109,6 @@ def full_test():
     response_get_outgoing = get_outgoing_requests(self_id=3)
     response_get_incoming = get_incoming_requests(self_id=26)
     response_get_friends = get_friends(self_id=15)
-
 
 
     print(f"Create User Status: {response_create.status_code} \nMessage: {response_create.text}")
@@ -135,6 +138,8 @@ def full_test():
 if __name__ == "__main__":
    # response = delete_user("Stine")
    # print(f"Status: {response.status_code} \nMessage: {response.text}")
-   full_test()
+   #full_test()
    #response_get_location = get_last_location(user_id=1) 
    #print(f"Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
+   user_ids = [1, 3, 4, 5, 8, 13, 14]
+   clean_up(user_ids)
