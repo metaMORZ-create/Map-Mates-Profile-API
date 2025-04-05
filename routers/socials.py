@@ -126,3 +126,25 @@ def accept_friend_request(data: AcceptRequestInput, db: db_dependency):
     db.commit()
 
     return {"message": "Friend request accepted"}
+
+@router.post("/deny_request")
+def deny_friend_request(data: AcceptRequestInput, db: db_dependency):
+    friend_request = db.query(tables.FriendRequest).filter(
+        tables.FriendRequest.sender_id == data.sender_user_id,
+        tables.FriendRequest.receiver_id == data.self_user_id,
+        tables.FriendRequest.status == "pending"
+    ).first()
+
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Friend request not found or already handled")
+    
+    if friend_request.receiver_id != data.self_user_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to deny this friend request")
+    
+    # Add friendship both ways around
+
+    db.delete(friend_request)
+
+    db.commit()
+
+    return {"message": "Friend request denied"}

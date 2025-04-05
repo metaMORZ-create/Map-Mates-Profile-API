@@ -47,6 +47,19 @@ def send_request(sender_id: int, receiver_id: int):
 
     return response
 
+def accept_request(self_user_id: int, sender_user_id: int):
+    url_accept_request = f"https://map-mates-profile-api-production.up.railway.app/socials/accept_request"
+    data_accept_request = {"self_user_id": self_user_id, "sender_user_id": sender_user_id}
+    response = requests.post(url_accept_request, json=data_accept_request)
+
+    return response
+
+def deny_request(self_user_id: int, sender_user_id: int):
+    url_deny_request = f"https://map-mates-profile-api-production.up.railway.app/socials/deny_request"
+    data_deny_request = {"self_user_id": self_user_id, "sender_user_id": sender_user_id}
+    response = requests.post(url_deny_request, json=data_deny_request)
+
+    return response
 
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
@@ -56,6 +69,9 @@ def full_test():
     response_get_location = get_last_location(user_id=1)
     response_search_user = search_user(search="momo", user_id=1)
     response_send_request = send_request(sender_id=3, receiver_id=1)
+    response_accept_request = accept_request(self_user_id=1, sender_user_id=3)
+    response_send_request = send_request(sender_id=15, receiver_id=1)
+    response_deny_request = deny_request(self_user_id=1, sender_user_id=15)
 
 
     print(f"Create User Status: {response_create.status_code} \nMessage: {response_create.text}")
@@ -71,6 +87,10 @@ def full_test():
     print(f"Search User Status: {response_search_user.status_code} \nMessage: {response_search_user.text}")
     print("-------------------------------------------------------------------------------------------------")
     print(f"Send Request Status: {response_send_request.status_code} \nMessage: {response_send_request.text}")
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Send Request Status: {response_accept_request.status_code} \nMessage: {response_accept_request.text}")
+    print("-------------------------------------------------------------------------------------------------")
+    print(f"Send Request Status: {response_deny_request.status_code} \nMessage: {response_deny_request.text}")
 
 
 if __name__ == "__main__":
