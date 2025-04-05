@@ -54,7 +54,7 @@ def full_test():
     response_delete = delete_user(username="Tester")
     response_add_location = add_location(user_id=1, latitude=random.randrange(10, 60), longitude=random.randrange(10, 60))
     response_get_location = get_last_location(user_id=1)
-    response_search_user = search_user(search="mor", user_id=3)
+    response_search_user = search_user(search="momo", user_id=1)
     response_send_request = send_request(sender_id=3, receiver_id=1)
 
 

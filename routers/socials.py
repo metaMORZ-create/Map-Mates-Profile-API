@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from db import get_db
 import models as tables
-from typevalidation import FriendRequestInput
+from typevalidation import FriendRequestInput, AcceptRequestInput
 
 router = APIRouter()
 
@@ -100,3 +100,29 @@ def send_friend_request(data: FriendRequestInput, db: db_dependency):
     db.refresh(friend_request)
 
     return {"message": "Friend request sent", "request_id": friend_request.id}
+
+@router.post("/accept_request")
+def accept_friend_request(data: AcceptRequestInput, db: db_dependency):
+    friend_request = db.query(tables.FriendRequest).filter(
+        tables.FriendRequest.sender_id == data.sender_user_id,
+        tables.FriendRequest.receiver_id == data.self_user_id,
+        tables.FriendRequest.status == "pending"
+    ).first()
+
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Friend request not found or already handled")
+    
+    if friend_request.receiver_id != data.self_user_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to accept this friend request")
+    
+    # Add friendship both ways around
+    db.add_all([
+        tables.UserFriend(user_id=data.self_user_id, friend_id=data.sender_user_id),
+        tables.UserFriend(user_id=data.sender_user_id, friend_id=data.self_user_id)
+    ])
+
+    friend_request.status = "accepted"
+
+    db.commit()
+
+    return {"message": "Friend request accepted"}

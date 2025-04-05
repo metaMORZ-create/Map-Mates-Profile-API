@@ -18,3 +18,7 @@ class AddLocation(BaseModel):
 class FriendRequestInput(BaseModel):
     sender_id: int
     receiver_id: int
+
+class AcceptRequestInput(BaseModel):
+    self_user_id: int
+    sender_user_id: int
