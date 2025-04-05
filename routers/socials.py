@@ -157,34 +157,52 @@ def deny_friend_request(data: AcceptRequestInput, db: db_dependency):
 
 @router.get("/outgoing_requests/{self_id}")
 def get_outgoing_request(self_id: int, db: db_dependency):
-    requests = db.query(tables.FriendRequest).filter(
-        tables.FriendRequest.sender_id == self_id,
-        tables.FriendRequest.status == "pending"
-    ).all()
+    requests = (
+        db.query(
+            tables.FriendRequest,
+            tables.User.username.label("receiver_username")
+        )
+        .join(tables.User, tables.FriendRequest.receiver_id == tables.User.id)
+        .filter(
+            tables.FriendRequest.sender_id == self_id,
+            tables.FriendRequest.status == "pending"
+        )
+        .all()
+    )
 
     return [
         {
-            "request_id": req.id,
-            "receiver_id": req.receiver_id,
-            "status": req.status,
-            "created_at": req.created_at
+            "request_id": req.FriendRequest.id,
+            "receiver_id": req.FriendRequest.receiver_id,
+            "receiver_username": req.receiver_username,
+            "status": req.FriendRequest.status,
+            "created_at": req.FriendRequest.created_at
         }
         for req in requests
     ]
 
 @router.get("/received_requests/{self_id}")
 def get_received_request(self_id: int, db: db_dependency):
-    requests = db.query(tables.FriendRequest).filter(
-        tables.FriendRequest.receiver_id == self_id,
-        tables.FriendRequest.status == "pending"
-    ).all()
+    requests = (
+        db.query(
+            tables.FriendRequest,
+            tables.User.username.label("sender_username")
+        )
+        .join(tables.User, tables.FriendRequest.sender_id == tables.User.id)
+        .filter(
+            tables.FriendRequest.receiver_id == self_id,
+            tables.FriendRequest.status == "pending"
+        )
+        .all()
+    )
 
     return [
         {
-            "request_id": req.id,
-            "sender_id": req.sender_id,
-            "status": req.status,
-            "created_at": req.created_at
+            "request_id": req.FriendRequest.id,
+            "sender_id": req.FriendRequest.sender_id,
+            "sender_username": req.sender_username,
+            "status": req.FriendRequest.status,
+            "created_at": req.FriendRequest.created_at
         }
         for req in requests
     ]
