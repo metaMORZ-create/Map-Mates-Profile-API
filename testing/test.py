@@ -155,5 +155,5 @@ if __name__ == "__main__":
    #print(f"Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
    #user_ids = [1, 3, 4, 5, 8, 13, 14]
    #clean_up(user_ids)
-   response = get_visited_polygon(15)
+   response = get_visited_polygon(user_id=43)
    print(f"Get friends Status: {response.status_code} \nMessage: {response.text}")

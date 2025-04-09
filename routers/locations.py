@@ -99,7 +99,7 @@ def get_visited_polygons(user_id: int, db: Session = Depends(get_db)):
         return {"features": []}
 
     shapely_points = [Point(z.longitude, z.latitude) for z in zones]
-    clusters = cluster_points(shapely_points, max_distance_m=30)
+    clusters = cluster_points(shapely_points, max_distance_m=50)
 
     features = []
     for cluster in clusters:
