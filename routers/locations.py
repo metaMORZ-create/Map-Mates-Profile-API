@@ -6,7 +6,9 @@ from hashing import hash_password, verify_password
 import models as tables
 from typevalidation import AddLocation
 from datetime import datetime
-from utils import is_within_radius
+from utils import is_within_radius, create_buffered_area, meter_to_degree_lat
+from shapely.geometry import Point, MultiPoint, mapping
+from shapely.ops import unary_union
 
 
 router = APIRouter()
@@ -88,3 +90,16 @@ def get_visited_zones(user_id: int, db: db_dependency):
         }
         for zone in zones
     ]
+
+@router.get("/visited_polygon/{user_id}")
+def get_visited_polygon(user_id: int, db: Session = Depends(get_db)):
+    visited_points = db.query(tables.VisitedZone).filter_by(user_id=user_id).all()
+    if not visited_points:
+        return {"area": None}
+
+    points = [{"latitude": z.latitude, "longitude": z.longitude} for z in visited_points]
+    polygon = create_buffered_area(points, padding_m=15)
+
+    return {
+        "area": mapping(polygon)  # GeoJSON-Format
+    }

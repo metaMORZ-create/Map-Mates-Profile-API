@@ -1,4 +1,5 @@
 import math
+from shapely.geometry import Point, MultiPoint
 
 def is_within_radius(lat1, lon1, lat2, lon2, radius_meters=5):
     R = 6371000  # Erdradius in Metern
@@ -12,3 +13,28 @@ def is_within_radius(lat1, lon1, lat2, lon2, radius_meters=5):
 
     distance = R * c
     return distance <= radius_meters
+
+def meter_to_degree_lat(meters: float) -> float:
+    return meters / 111_000  # Breitengrad ≈ konstant
+
+def create_buffered_area(points: list[dict], padding_m: float = 15.0):
+    """
+    Erstellt ein Polygon, das alle Punkte umschließt, mit einem Padding von X Metern.
+    Punkteformat: [{"latitude": ..., "longitude": ...}, ...]
+    """
+    if not points:
+        return None
+
+    # In Shapely-Punkte konvertieren
+    shapely_points = [Point(p["longitude"], p["latitude"]) for p in points]
+
+    # Kombinieren zu einem MultiPoint-Objekt
+    multi = MultiPoint(shapely_points)
+
+    # Padding in Grad (Breite)
+    padding_deg = meter_to_degree_lat(padding_m)
+
+    # Erzeuge gepuffertes Polygon
+    buffered_area = multi.convex_hull.buffer(padding_deg)
+
+    return buffered_area
