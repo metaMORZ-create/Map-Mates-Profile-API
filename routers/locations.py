@@ -99,11 +99,11 @@ def get_visited_polygons(user_id: int, db: Session = Depends(get_db)):
         return {"features": []}
 
     shapely_points = [Point(z.longitude, z.latitude) for z in zones]
-    clusters = cluster_points(shapely_points, max_distance_m=10)
+    clusters = cluster_points(shapely_points, max_distance_m=30)
 
     features = []
     for cluster in clusters:
-        merged = unary_union([p.buffer(15 / 111_111) for p in cluster])  # 15m buffer
+        merged = unary_union([p.buffer(30 / 111_111) for p in cluster])  # 30m buffer
         if merged.geom_type == "Polygon":
             coords = list(merged.exterior.coords)
             features.append({
