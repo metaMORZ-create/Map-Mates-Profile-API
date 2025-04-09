@@ -6,9 +6,10 @@ from hashing import hash_password, verify_password
 import models as tables
 from typevalidation import AddLocation
 from datetime import datetime
-from utils import is_within_radius, create_buffered_area, meter_to_degree_lat
+from utils import is_within_radius, create_buffered_area, meter_to_degree_lat, cluster_points
 from shapely.geometry import Point, MultiPoint, mapping
 from shapely.ops import unary_union
+from fastapi.responses import JSONResponse
 
 
 router = APIRouter()
@@ -92,14 +93,28 @@ def get_visited_zones(user_id: int, db: db_dependency):
     ]
 
 @router.get("/visited_polygon/{user_id}")
-def get_visited_polygon(user_id: int, db: Session = Depends(get_db)):
-    visited_points = db.query(tables.VisitedZone).filter_by(user_id=user_id).all()
-    if not visited_points:
-        return {"area": None}
+def get_visited_polygons(user_id: int, db: Session = Depends(get_db)):
+    zones = db.query(tables.VisitedZone).filter_by(user_id=user_id).all()
+    if not zones:
+        return {"features": []}
 
-    points = [{"latitude": z.latitude, "longitude": z.longitude} for z in visited_points]
-    polygon = create_buffered_area(points, padding_m=15)
+    shapely_points = [Point(z.longitude, z.latitude) for z in zones]
+    clusters = cluster_points(shapely_points, max_distance_m=10)
 
-    return {
-        "area": mapping(polygon)  # GeoJSON-Format
-    }
+    features = []
+    for cluster in clusters:
+        merged = unary_union([p.buffer(15 / 111_111) for p in cluster])  # 15m buffer
+        if merged.geom_type == "Polygon":
+            coords = list(merged.exterior.coords)
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[list(c) for c in coords]]
+                }
+            })
+
+    return JSONResponse(content={
+        "type": "FeatureCollection",
+        "features": features
+    })

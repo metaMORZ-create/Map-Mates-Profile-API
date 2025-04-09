@@ -1,5 +1,6 @@
 import math
 from shapely.geometry import Point, MultiPoint
+from geopy.distance import geodesic
 
 def is_within_radius(lat1, lon1, lat2, lon2, radius_meters=5):
     R = 6371000  # Erdradius in Metern
@@ -38,3 +39,17 @@ def create_buffered_area(points: list[dict], padding_m: float = 15.0):
     buffered_area = multi.convex_hull.buffer(padding_deg)
 
     return buffered_area
+
+def cluster_points(points, max_distance_m=10):
+    clusters = []
+
+    for point in points:
+        added = False
+        for cluster in clusters:
+            if any(geodesic((point.y, point.x), (other.y, other.x)).meters <= max_distance_m for other in cluster):
+                cluster.append(point)
+                added = True
+                break
+        if not added:
+            clusters.append([point])
+    return clusters

@@ -101,6 +101,12 @@ def get_visited_zones(user_id: int):
 
     return response
 
+def get_visited_polygon(user_id: int):
+    url_visited_zones = f"https://map-mates-profile-api-production.up.railway.app/locations/visited_polygon/{user_id}"
+    response = requests.get(url_visited_zones)
+
+    return response
+
 def full_test():
     response_create = create_user(username="Tester", email="test@test.test", password="test123")
     response_login = login_user(username="Tester", password="test123")
@@ -149,5 +155,5 @@ if __name__ == "__main__":
    #print(f"Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
    #user_ids = [1, 3, 4, 5, 8, 13, 14]
    #clean_up(user_ids)
-   response = get_visited_zones(15)
+   response = get_visited_polygon(15)
    print(f"Get friends Status: {response.status_code} \nMessage: {response.text}")
