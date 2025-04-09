@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 class UserBase(BaseModel):
     username: str
@@ -22,3 +23,11 @@ class FriendRequestInput(BaseModel):
 class AcceptRequestInput(BaseModel):
     self_user_id: int
     sender_user_id: int
+
+class LocationEntry(BaseModel):
+    user_id: int
+    latitude: float
+    longitude: float
+
+class BatchVisitedZones(BaseModel):
+    locations: List[LocationEntry]

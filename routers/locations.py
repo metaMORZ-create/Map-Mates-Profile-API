@@ -4,7 +4,7 @@ from typing import Annotated
 from db import get_db
 from hashing import hash_password, verify_password
 import models as tables
-from typevalidation import AddLocation
+from typevalidation import AddLocation, BatchVisitedZones
 from datetime import datetime
 from utils import is_within_radius, create_buffered_area, meter_to_degree_lat, cluster_points
 from shapely.geometry import Point, MultiPoint, mapping
@@ -76,6 +76,33 @@ def mark_visited_zone(data: AddLocation, db: db_dependency):
     db.commit()
     return {"message": "Zone saved/updated"}
 
+@router.post("/batch_visited_zones")
+def batch_visited_zones(data: BatchVisitedZones, db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+    for entry in data.locations:
+        existing_zones = db.query(tables.VisitedZone).filter_by(user_id=entry.user_id).all()
+
+        matched_zone = None
+        for zone in existing_zones:
+            if is_within_radius(entry.latitude, entry.longitude, zone.latitude, zone.longitude, zone.radius):
+                matched_zone = zone
+                break
+
+        if matched_zone:
+            matched_zone.last_visited = now
+            matched_zone.visits += 1
+        else:
+            new_zone = tables.VisitedZone(
+                user_id=entry.user_id,
+                latitude=entry.latitude,
+                longitude=entry.longitude,
+                last_visited=now
+            )
+            db.add(new_zone)
+
+    db.commit()
+    return {"message": f"{len(data.locations)} zones processed"}
+
 @router.get("/visited_zones/{user_id}")
 def get_visited_zones(user_id: int, db: db_dependency):
     zones = db.query(tables.VisitedZone).filter(
@@ -103,7 +130,7 @@ def get_visited_polygons(user_id: int, db: Session = Depends(get_db)):
 
     features = []
     for cluster in clusters:
-        merged = unary_union([p.buffer(30 / 111_111) for p in cluster])  # 30m buffer
+        merged = unary_union([p.buffer(30 / 111_111, resolution=6) for p in cluster])  # 30m buffer
         if merged.geom_type == "Polygon":
             coords = list(merged.exterior.coords)
             features.append({
