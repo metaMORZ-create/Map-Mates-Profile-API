@@ -4,7 +4,7 @@ from typing import Annotated
 from db import get_db
 from hashing import hash_password, verify_password
 import models as tables
-from typevalidation import AddLocation, BatchVisitedZones
+from typevalidation import AddLocation, BatchVisitedZones, BatchLocations
 from datetime import datetime
 from utils import is_within_radius, create_buffered_area, meter_to_degree_lat, cluster_points
 from shapely.geometry import Point, MultiPoint, mapping
@@ -78,7 +78,6 @@ def mark_visited_zone(data: AddLocation, db: db_dependency):
 
 @router.post("/batch_visited_zones")
 def batch_visited_zones(data: BatchVisitedZones, db: Session = Depends(get_db)):
-    now = datetime.utcnow()
     for entry in data.locations:
         existing_zones = db.query(tables.VisitedZone).filter_by(user_id=entry.user_id).all()
 
@@ -89,19 +88,36 @@ def batch_visited_zones(data: BatchVisitedZones, db: Session = Depends(get_db)):
                 break
 
         if matched_zone:
-            matched_zone.last_visited = now
+            matched_zone.last_visited = entry.timestamp
             matched_zone.visits += 1
         else:
             new_zone = tables.VisitedZone(
                 user_id=entry.user_id,
                 latitude=entry.latitude,
                 longitude=entry.longitude,
-                last_visited=now
+                last_visited=entry.timestamp
             )
             db.add(new_zone)
 
     db.commit()
     return {"message": f"{len(data.locations)} zones processed"}
+
+
+@router.post("/batch_add_locations")
+def batch_add_locations(data: BatchLocations, db: Session = Depends(get_db)):
+    for entry in data.locations:
+        new_loc = tables.UserLocation(
+            user_id=entry.user_id,
+            latitude=entry.latitude,
+            longitude=entry.longitude,
+            timestamp=entry.timestamp
+        )
+        db.add(new_loc)
+
+    db.commit()
+    return {"message": f"{len(data.locations)} locations added"}
+
+
 
 @router.get("/visited_zones/{user_id}")
 def get_visited_zones(user_id: int, db: db_dependency):

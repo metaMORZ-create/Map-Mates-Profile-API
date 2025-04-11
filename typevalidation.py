@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 class UserBase(BaseModel):
     username: str
@@ -28,6 +29,10 @@ class LocationEntry(BaseModel):
     user_id: int
     latitude: float
     longitude: float
+    timestamp: datetime
 
 class BatchVisitedZones(BaseModel):
+    locations: List[LocationEntry]
+
+class BatchLocations(BaseModel):
     locations: List[LocationEntry]
