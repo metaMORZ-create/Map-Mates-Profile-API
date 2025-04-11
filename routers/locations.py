@@ -135,7 +135,7 @@ def get_visited_zones(user_id: int, db: db_dependency):
         for zone in zones
     ]
 
-@router.get("/visited_polygon/{user_id}")
+@router.get("/visited_polygons")
 def get_visited_polygons_from_zones(
     zones: List[ZoneInput] = Body(...),
 ):
