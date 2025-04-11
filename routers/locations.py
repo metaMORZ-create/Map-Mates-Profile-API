@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-from typing import Annotated
+from typing import Annotated, List
 from db import get_db
 from hashing import hash_password, verify_password
 import models as tables
-from typevalidation import AddLocation, BatchVisitedZones, BatchLocations
+from typevalidation import AddLocation, BatchVisitedZones, BatchLocations, ZoneInput
 from datetime import datetime
 from utils import is_within_radius, create_buffered_area, meter_to_degree_lat, cluster_points
 from shapely.geometry import Point, MultiPoint, mapping
@@ -136,8 +136,9 @@ def get_visited_zones(user_id: int, db: db_dependency):
     ]
 
 @router.get("/visited_polygon/{user_id}")
-def get_visited_polygons(user_id: int, db: Session = Depends(get_db)):
-    zones = db.query(tables.VisitedZone).filter_by(user_id=user_id).all()
+def get_visited_polygons_from_zones(
+    zones: List[ZoneInput] = Body(...),
+):
     if not zones:
         return {"features": []}
 
@@ -146,7 +147,7 @@ def get_visited_polygons(user_id: int, db: Session = Depends(get_db)):
 
     features = []
     for cluster in clusters:
-        merged = unary_union([p.buffer(30 / 111_111, resolution=6) for p in cluster])  # 7m buffer
+        merged = unary_union([p.buffer(30 / 111_111, resolution=6) for p in cluster])
         if merged.geom_type == "Polygon":
             coords = list(merged.exterior.coords)
             features.append({
