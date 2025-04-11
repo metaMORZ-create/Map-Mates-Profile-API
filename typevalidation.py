@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
+from typing import Optional
 
 class UserBase(BaseModel):
     username: str
@@ -36,3 +37,10 @@ class BatchVisitedZones(BaseModel):
 
 class BatchLocations(BaseModel):
     locations: List[LocationEntry]
+
+class ZoneInput(BaseModel):
+    latitude: float
+    longitude: float
+    radius: float = 5.0
+    last_visited: Optional[str] = None
+
