@@ -162,3 +162,83 @@ def get_visited_polygons_from_zones(
         "type": "FeatureCollection",
         "features": features
     })
+
+@router.post("/extend_visited_polygon/{user_id}")
+def extend_visited_polygon(
+    user_id: int,
+    new_zones: List[ZoneInput] = Body(...),
+    db: Session = Depends(get_db)
+):
+    if not new_zones:
+        raise HTTPException(status_code=400, detail="No new zones provided.")
+
+    # Bestehendes Polygon abrufen
+    existing = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
+
+    # Neue Punkte in Shapely-Form umwandeln
+    new_points = [Point(z.longitude, z.latitude) for z in new_zones]
+    new_cluster = unary_union([p.buffer(30 / 111_111, resolution=6) for p in new_points])
+
+    # Wenn noch kein Polygon existiert, wird es neu erstellt
+    if not existing:
+        geojson = {
+            "type": "FeatureCollection",
+            "features": []
+        }
+
+        if new_cluster.geom_type == "Polygon":
+            geojson["features"].append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[list(c) for c in new_cluster.exterior.coords]]
+                }
+            })
+
+        db.add(tables.VisitedPolygon(
+            user_id=user_id,
+            geojson=geojson,
+            last_updated=datetime.utcnow()
+        ))
+        db.commit()
+        return {"message": "New polygon created from scratch."}
+
+    # Wenn bereits ein Polygon existiert, erweitere es
+    old_polygons = []
+    for feature in existing.geojson.get("features", []):
+        coords = feature["geometry"]["coordinates"][0]
+        old_polygons.append(Polygon([(c[0], c[1]) for c in coords]))
+
+    combined = unary_union([*old_polygons, new_cluster])
+
+    new_features = []
+    if combined.geom_type == "Polygon":
+        new_features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[list(c) for c in combined.exterior.coords]]
+            }
+        })
+    elif combined.geom_type == "MultiPolygon":
+        for poly in combined.geoms:
+            new_features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[list(c) for c in poly.exterior.coords]]
+                }
+            })
+
+    existing.geojson = {
+        "type": "FeatureCollection",
+        "features": new_features
+    }
+    existing.last_updated = datetime.utcnow()
+    db.commit()
+
+    return {"message": "Polygon extended successfully."}
+
+
+
+

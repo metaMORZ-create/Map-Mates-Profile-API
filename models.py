@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Float, DateTime, Enum
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, Float, DateTime, Enum, JSON
 from sqlalchemy.orm import relationship
 from db import Base
 from datetime import datetime
@@ -17,6 +17,7 @@ class User(Base):
     friend_requests_sent = relationship("FriendRequest", foreign_keys="[FriendRequest.sender_id]")
     visited_zones = relationship("VisitedZone", back_populates="user", cascade="all, delete")
     friend_requests_received = relationship("FriendRequest", foreign_keys="[FriendRequest.receiver_id]")
+    visited_polygon = relationship("VisitedPolygon", back_populates="user", uselist=False)
 
 class UserLocation(Base):
     __tablename__ = "user_locations"
@@ -76,3 +77,13 @@ class VisitedZone(Base):
     last_visited = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="visited_zones")
+
+class VisitedPolygon(Base):
+    __tablename__ = "visited_polygons"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    geojson = Column(JSON, nullable=False)
+    last_updated = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="visited_polygon")
