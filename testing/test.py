@@ -153,7 +153,7 @@ if __name__ == "__main__":
    #full_test()
    #response_get_location = get_last_location(user_id=1) 
    #print(f"Status: {response_get_location.status_code} \nMessage: {response_get_location.text}")
-   user_ids = [43, 41, 15, 42]
+   user_ids = [44, 26]
    clean_up(user_ids)
    #response = get_visited_polygon(user_id=43)
    #print(f"Get friends Status: {response.status_code} \nMessage: {response.text}")
