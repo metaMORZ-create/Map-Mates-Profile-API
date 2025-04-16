@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
+from shapely import Polygon
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 from db import get_db
@@ -239,6 +240,13 @@ def extend_visited_polygon(
 
     return {"message": "Polygon extended successfully."}
 
+@router.get("/stored_polygon/{user_id}")
+def get_stored_polygon(user_id: int, db: Session = Depends(get_db)):
+    stored = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
 
+    if not stored:
+        raise HTTPException(status_code=404, detail="No stored polygon found.")
+
+    return JSONResponse(content=stored.geojson)
 
 

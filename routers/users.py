@@ -38,25 +38,32 @@ def full_delete_user(user_id: int, db: db_dependency):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 1. Lösche Standortdaten
+    # 1. Standortdaten löschen
     db.query(tables.UserLocation).filter(tables.UserLocation.user_id == user_id).delete()
 
-    # 2. Lösche Friend Requests (gesendet oder empfangen)
+    # 2. Friend Requests löschen (gesendet oder empfangen)
     db.query(tables.FriendRequest).filter(
         (tables.FriendRequest.sender_id == user_id) | 
         (tables.FriendRequest.receiver_id == user_id)
     ).delete()
 
-    # 3. Lösche Freundschaften (egal ob user_id sender oder empfänger)
+    # 3. Freundschaften löschen (egal ob user_id sender oder empfänger)
     db.query(tables.UserFriend).filter(
         (tables.UserFriend.user_id == user_id) | 
         (tables.UserFriend.friend_id == user_id)
     ).delete()
 
-    # 4. Lösche den User
+    # 4. Besuchte Zonen löschen
+    db.query(tables.VisitedZone).filter(tables.VisitedZone.user_id == user_id).delete()
+
+    # 5. Berechnete Polygone löschen
+    db.query(tables.VisitedPolygon).filter(tables.VisitedPolygon.user_id == user_id).delete()
+
+    # 6. User löschen
     db.delete(user)
     db.commit()
 
-    return {"message": f"User {user.username} and related data deleted."}
+    return {"message": f"User {user.username} and all related data deleted."}
+
 
 
