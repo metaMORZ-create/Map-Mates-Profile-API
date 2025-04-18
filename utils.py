@@ -54,3 +54,23 @@ def cluster_points(points, max_distance_m=10):
             clusters.append([point])
     return clusters
 
+def cluster_points_by_distance(points, max_distance_m=20):
+    clusters = []
+    current_cluster = []
+
+    for i, point in enumerate(points):
+        if not current_cluster:
+            current_cluster.append(point)
+            continue
+
+        if geodesic((current_cluster[-1].y, current_cluster[-1].x), (point.y, point.x)).meters < max_distance_m:
+            current_cluster.append(point)
+        else:
+            if len(current_cluster) > 1:
+                clusters.append(current_cluster)
+            current_cluster = [point]
+
+    if len(current_cluster) > 1:
+        clusters.append(current_cluster)
+
+    return clusters

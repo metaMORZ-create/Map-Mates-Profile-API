@@ -7,7 +7,7 @@ from hashing import hash_password, verify_password
 import models as tables
 from typevalidation import AddLocation, BatchVisitedZones, BatchLocations, ZoneInput
 from datetime import datetime
-from utils import is_within_radius, create_buffered_area, meter_to_degree_lat, cluster_points
+from utils import is_within_radius, create_buffered_area, meter_to_degree_lat, cluster_points, cluster_points_by_distance
 from shapely.geometry import Point, MultiPoint, mapping
 from shapely.ops import unary_union
 from fastapi.responses import JSONResponse
@@ -307,50 +307,42 @@ def extend_visited_polygon(
     new_zones: List[ZoneInput] = Body(...),
     db: Session = Depends(get_db)
 ):
-    if len(new_zones) < 2:
-        raise HTTPException(status_code=400, detail="At least two points needed for route buffering.")
+    if not new_zones:
+        raise HTTPException(status_code=400, detail="Keine Punkte erhalten.")
 
-    # Bestehendes Polygon abrufen
+    # Neue Punkte vorbereiten
+    new_points = [Point(z.longitude, z.latitude) for z in new_zones]
+    clustered = cluster_points_by_distance(new_points, max_distance_meters=20)  # Cluster-Grenze nach deinem Gusto
+
+    if not clustered:
+        raise HTTPException(status_code=400, detail="Keine gültigen Cluster gefunden.")
+
+    # Alte Polygone laden
     existing = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
-
-    # Neue Punkte in Shapely-Form
-    points = [Point(z.longitude, z.latitude) for z in new_zones]
-    route = LineString(points)
-
-    # Band mit 30m Breite
-    buffered = route.buffer(30 / 111_111, resolution=3)
-
-    # Wenn noch nichts existiert → neu erstellen
-    if not existing:
-        geojson = {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [[list(c) for c in buffered.exterior.coords]]
-                }
-            }]
-        }
-        db.add(tables.VisitedPolygon(
-            user_id=user_id,
-            geojson=geojson,
-            last_updated=datetime.utcnow()
-        ))
-        db.commit()
-        return {"message": "New buffered route polygon created."}
-
-    # Wenn vorhanden → mit altem vereinen
     old_polys = []
-    for f in existing.geojson["features"]:
-        coords = f["geometry"]["coordinates"][0]
-        old_polys.append(Polygon(coords))
+    if existing:
+        for f in existing.geojson["features"]:
+            coords = f["geometry"]["coordinates"][0]
+            old_polys.append(Polygon(coords))
 
-    combined = unary_union([*old_polys, buffered])
+    # Für jeden Cluster einen LineString + Buffer → kombinieren
+    all_new_buffers = []
+    for group in clustered:
+        if len(group) < 2:
+            continue  # einzelne Punkte skippen (oder als Punkt puffern, je nach Wunsch)
+        line = LineString(group)
+        all_new_buffers.append(line.buffer(30 / 111_111, resolution=3))
 
-    new_features = []
+    # Falls keine gültigen Linien
+    if not all_new_buffers:
+        return {"message": "Keine ausreichenden Punkte zur Erweiterung."}
+
+    combined = unary_union([*old_polys, *all_new_buffers]) if old_polys else unary_union(all_new_buffers)
+
+    # In GeoJSON umwandeln
+    features = []
     if combined.geom_type == "Polygon":
-        new_features.append({
+        features.append({
             "type": "Feature",
             "geometry": {
                 "type": "Polygon",
@@ -359,7 +351,7 @@ def extend_visited_polygon(
         })
     elif combined.geom_type == "MultiPolygon":
         for poly in combined.geoms:
-            new_features.append({
+            features.append({
                 "type": "Feature",
                 "geometry": {
                     "type": "Polygon",
@@ -367,14 +359,18 @@ def extend_visited_polygon(
                 }
             })
 
-    existing.geojson = {
-        "type": "FeatureCollection",
-        "features": new_features
-    }
-    existing.last_updated = datetime.utcnow()
-    db.commit()
+    if not existing:
+        db.add(tables.VisitedPolygon(
+            user_id=user_id,
+            geojson={"type": "FeatureCollection", "features": features},
+            last_updated=datetime.utcnow()
+        ))
+    else:
+        existing.geojson = {"type": "FeatureCollection", "features": features}
+        existing.last_updated = datetime.utcnow()
 
-    return {"message": "Buffered route polygon extended successfully."}
+    db.commit()
+    return {"message": "Polygon erfolgreich erweitert mit Cluster-Logik."}
 
 
 
