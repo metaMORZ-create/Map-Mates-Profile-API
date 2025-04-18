@@ -53,3 +53,4 @@ def cluster_points(points, max_distance_m=10):
         if not added:
             clusters.append([point])
     return clusters
+

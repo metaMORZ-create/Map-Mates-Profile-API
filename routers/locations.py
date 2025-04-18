@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
-from shapely import Polygon
+from shapely import Polygon, LineString
 from sqlalchemy.orm import Session
 from typing import Annotated, List
 from db import get_db
@@ -164,7 +164,7 @@ def get_visited_polygons_from_zones(
         "features": features
     })
 
-@router.post("/extend_visited_polygon/{user_id}")
+@router.post("/extend_visited_polygon_alt/{user_id}")
 def extend_visited_polygon(
     user_id: int,
     new_zones: List[ZoneInput] = Body(...),
@@ -178,7 +178,7 @@ def extend_visited_polygon(
 
     # Neue Punkte in Shapely-Form umwandeln
     new_points = [Point(z.longitude, z.latitude) for z in new_zones]
-    new_cluster = unary_union([p.buffer(30 / 111_111, resolution=6) for p in new_points])
+    new_cluster = unary_union([p.buffer(15 / 111_111, resolution=3) for p in new_points])
 
     # Wenn noch kein Polygon existiert, wird es neu erstellt
     if not existing:
@@ -248,5 +248,133 @@ def get_stored_polygon(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No stored polygon found.")
 
     return JSONResponse(content=stored.geojson)
+
+
+@router.post("/rebuild_visited_polygon/{user_id}")
+def rebuild_visited_polygon(user_id: int, db: Session = Depends(get_db)):
+    visited_zones = db.query(tables.VisitedZone).filter_by(user_id=user_id).all()
+    
+    if not visited_zones:
+        raise HTTPException(status_code=404, detail="Keine Visited Zones gefunden")
+
+    points = [Point(zone.longitude, zone.latitude) for zone in visited_zones]
+    clusters = cluster_points(points, max_distance_m=20)
+
+    features = []
+    for cluster in clusters:
+        buffered = unary_union([p.buffer(30 / 111_111, resolution=8) for p in cluster])
+        if buffered.geom_type == "Polygon":
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[list(c) for c in buffered.exterior.coords]]
+                }
+            })
+        elif buffered.geom_type == "MultiPolygon":
+            for poly in buffered.geoms:
+                features.append({
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[list(c) for c in poly.exterior.coords]]
+                    }
+                })
+
+    new_geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+
+    existing_polygon = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
+    if existing_polygon:
+        existing_polygon.geojson = new_geojson
+        existing_polygon.last_updated = datetime.utcnow()
+    else:
+        db.add(tables.VisitedPolygon(
+            user_id=user_id,
+            geojson=new_geojson,
+            last_updated=datetime.utcnow()
+        ))
+
+    db.commit()
+    return {"message": "Polygon wurde vollständig neu berechnet."}
+
+
+@router.post("/extend_visited_polygon/{user_id}")
+def extend_visited_polygon(
+    user_id: int,
+    new_zones: List[ZoneInput] = Body(...),
+    db: Session = Depends(get_db)
+):
+    if len(new_zones) < 2:
+        raise HTTPException(status_code=400, detail="At least two points needed for route buffering.")
+
+    # Bestehendes Polygon abrufen
+    existing = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
+
+    # Neue Punkte in Shapely-Form
+    points = [Point(z.longitude, z.latitude) for z in new_zones]
+    route = LineString(points)
+
+    # Band mit 30m Breite
+    buffered = route.buffer(30 / 111_111, resolution=3)
+
+    # Wenn noch nichts existiert → neu erstellen
+    if not existing:
+        geojson = {
+            "type": "FeatureCollection",
+            "features": [{
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[list(c) for c in buffered.exterior.coords]]
+                }
+            }]
+        }
+        db.add(tables.VisitedPolygon(
+            user_id=user_id,
+            geojson=geojson,
+            last_updated=datetime.utcnow()
+        ))
+        db.commit()
+        return {"message": "New buffered route polygon created."}
+
+    # Wenn vorhanden → mit altem vereinen
+    old_polys = []
+    for f in existing.geojson["features"]:
+        coords = f["geometry"]["coordinates"][0]
+        old_polys.append(Polygon(coords))
+
+    combined = unary_union([*old_polys, buffered])
+
+    new_features = []
+    if combined.geom_type == "Polygon":
+        new_features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[list(c) for c in combined.exterior.coords]]
+            }
+        })
+    elif combined.geom_type == "MultiPolygon":
+        for poly in combined.geoms:
+            new_features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[list(c) for c in poly.exterior.coords]]
+                }
+            })
+
+    existing.geojson = {
+        "type": "FeatureCollection",
+        "features": new_features
+    }
+    existing.last_updated = datetime.utcnow()
+    db.commit()
+
+    return {"message": "Buffered route polygon extended successfully."}
+
 
 
