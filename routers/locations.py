@@ -301,7 +301,7 @@ def rebuild_visited_polygon(user_id: int, db: Session = Depends(get_db)):
     return {"message": "Polygon wurde vollständig neu berechnet."}
 
 
-@router.post("/extend_visited_polygon/{user_id}")
+@router.post("/extend_visited_polygon_neuer/{user_id}")
 def extend_visited_polygon(
     user_id: int,
     new_zones: List[ZoneInput] = Body(...),
@@ -371,6 +371,61 @@ def extend_visited_polygon(
 
     db.commit()
     return {"message": "Polygon erfolgreich erweitert mit Cluster-Logik."}
+
+
+@router.post("/extend_visited_polygon/{user_id}")
+def extend_visited_polygon(
+    user_id: int,
+    new_zones: list[ZoneInput] = Body(...),
+    db: Session = Depends(get_db)
+):
+    if not new_zones:
+        raise HTTPException(status_code=400, detail="No new zones provided.")
+
+    # Punkte → Buffer (ca. 15m Radius), zusammenführen
+    buffers = [Point(z.longitude, z.latitude).buffer(30 / 111_111, resolution=6) for z in new_zones]
+    merged = unary_union(buffers)
+
+    # Polygon-Objekte aus der Vereinigung extrahieren
+    if merged.geom_type == "Polygon":
+        polygons = [merged]
+    elif merged.geom_type == "MultiPolygon":
+        polygons = list(merged.geoms)
+    else:
+        polygons = []
+
+    # GeoJSON-Features mit NUR dem äußeren Ring (keine Innenflächen)
+    new_features = []
+    for poly in polygons:
+        new_features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[list(coord) for coord in poly.exterior.coords]]
+            }
+        })
+
+    # Vorhandenes Polygon laden
+    existing = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
+
+    if not existing:
+        db.add(tables.VisitedPolygon(
+            user_id=user_id,
+            geojson={"type": "FeatureCollection", "features": new_features},
+            last_updated=datetime.utcnow()
+        ))
+    else:
+        # Bestehende Features hinzufügen
+        existing_features = existing.geojson.get("features", [])
+        existing.geojson = {
+            "type": "FeatureCollection",
+            "features": existing_features + new_features
+        }
+        existing.last_updated = datetime.utcnow()
+
+    db.commit()
+
+    return {"message": "Polygon extended successfully with outer contour only."}
 
 
 
