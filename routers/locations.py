@@ -376,56 +376,75 @@ def extend_visited_polygon(
 @router.post("/extend_visited_polygon/{user_id}")
 def extend_visited_polygon(
     user_id: int,
-    new_zones: list[ZoneInput] = Body(...),
+    new_zones: List[ZoneInput] = Body(...),
     db: Session = Depends(get_db)
 ):
     if not new_zones:
-        raise HTTPException(status_code=400, detail="No new zones provided.")
+        raise HTTPException(status_code=400, detail="Keine Punkte erhalten.")
 
-    # Punkte → Buffer (ca. 15m Radius), zusammenführen
-    buffers = [Point(z.longitude, z.latitude).buffer(30 / 111_111, resolution=6) for z in new_zones]
-    merged = unary_union(buffers)
+    # Neue Punkte → Buffer
+    new_buffers = [Point(z.longitude, z.latitude).buffer(30 / 111_111, resolution=3) for z in new_zones]
 
-    # Polygon-Objekte aus der Vereinigung extrahieren
-    if merged.geom_type == "Polygon":
-        polygons = [merged]
-    elif merged.geom_type == "MultiPolygon":
-        polygons = list(merged.geoms)
+    # Bestehende Polygone laden
+    existing = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
+    old_polys = []
+    if existing:
+        for f in existing.geojson["features"]:
+            coords = f["geometry"]["coordinates"][0]
+            old_polys.append(Polygon(coords))
+
+    # Neue Buffers einteilen: connected vs. disconnected
+    connected = []
+    disconnected = []
+    for buffer in new_buffers:
+        if any(buffer.intersects(poly) for poly in old_polys):
+            connected.append(buffer)
+        else:
+            disconnected.append(buffer)
+
+    # Kombinieren: bestehende + verbundene neuen → Union
+    updated_geoms = []
+    if connected or old_polys:
+        combined = unary_union([*old_polys, *connected])
+        if combined.geom_type == "Polygon":
+            updated_geoms = [combined]
+        elif combined.geom_type == "MultiPolygon":
+            updated_geoms = list(combined.geoms)
     else:
-        polygons = []
+        updated_geoms = []
 
-    # GeoJSON-Features mit NUR dem äußeren Ring (keine Innenflächen)
-    new_features = []
-    for poly in polygons:
-        new_features.append({
+    # Nicht-verbundene Buffer einfach anhängen
+    updated_geoms.extend(disconnected)
+
+    # GeoJSON aufbauen
+    features = []
+    for poly in updated_geoms:
+        features.append({
             "type": "Feature",
             "geometry": {
                 "type": "Polygon",
-                "coordinates": [[list(coord) for coord in poly.exterior.coords]]
+                "coordinates": [[list(c) for c in poly.exterior.coords]]
             }
         })
 
-    # Vorhandenes Polygon laden
-    existing = db.query(tables.VisitedPolygon).filter_by(user_id=user_id).first()
-
+    # Speichern
     if not existing:
         db.add(tables.VisitedPolygon(
             user_id=user_id,
-            geojson={"type": "FeatureCollection", "features": new_features},
+            geojson={"type": "FeatureCollection", "features": features},
             last_updated=datetime.utcnow()
         ))
     else:
-        # Bestehende Features hinzufügen
-        existing_features = existing.geojson.get("features", [])
-        existing.geojson = {
-            "type": "FeatureCollection",
-            "features": existing_features + new_features
-        }
+        existing.geojson = {"type": "FeatureCollection", "features": features}
         existing.last_updated = datetime.utcnow()
 
     db.commit()
-
-    return {"message": "Polygon extended successfully with outer contour only."}
+    return {
+        "message": "Polygon aktualisiert.",
+        "connected_buffers": len(connected),
+        "new_isolated_buffers": len(disconnected),
+        "total_features": len(features)
+    }
 
 
 
