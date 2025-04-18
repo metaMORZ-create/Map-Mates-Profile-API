@@ -164,7 +164,7 @@ def get_visited_polygons_from_zones(
         "features": features
     })
 
-@router.post("/extend_visited_polygon_alt/{user_id}")
+@router.post("/extend_visited_polygon/{user_id}")
 def extend_visited_polygon(
     user_id: int,
     new_zones: List[ZoneInput] = Body(...),
@@ -373,7 +373,7 @@ def extend_visited_polygon(
     return {"message": "Polygon erfolgreich erweitert mit Cluster-Logik."}
 
 
-@router.post("/extend_visited_polygon/{user_id}")
+@router.post("/extend_visited_polygon_test2/{user_id}")
 def extend_visited_polygon(
     user_id: int,
     new_zones: List[ZoneInput] = Body(...),
