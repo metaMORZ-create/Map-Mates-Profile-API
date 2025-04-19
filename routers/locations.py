@@ -178,7 +178,7 @@ def extend_visited_polygon(
 
     # Neue Punkte in Shapely-Form umwandeln
     new_points = [Point(z.longitude, z.latitude) for z in new_zones]
-    new_cluster = unary_union([p.buffer(15 / 111_111, resolution=3) for p in new_points])
+    new_cluster = unary_union([p.buffer(30 / 111_111, resolution=3) for p in new_points])
 
     # Wenn noch kein Polygon existiert, wird es neu erstellt
     if not existing:
